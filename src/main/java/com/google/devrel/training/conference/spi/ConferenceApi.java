@@ -304,89 +304,112 @@ public class ConferenceApi {
 	 * @throws NotFoundException
 	 *             when there is no Conference with the given conferenceId.
 	 */
-	@ApiMethod(name = "registerForConference", path = "conference/{websafeConferenceKey}/registration", httpMethod = HttpMethod.POST)
-	public WrappedBoolean registerForConference_SKELETON(final User user,
-			@Named("websafeConferenceKey") final String websafeConferenceKey)
-			throws UnauthorizedException, NotFoundException,
-			ForbiddenException, ConflictException {
-		// If not signed in, throw a 401 error.
-		if (user == null) {
-			throw new UnauthorizedException("Authorization required");
-		}
+	/**
+	 * Register to attend the specified Conference.
+	 * 
+	 * @param user
+	 *            An user who invokes this method, null when the user is not
+	 *            signed in.
+	 * @param websafeConferenceKey
+	 *            The String representation of the Conference Key.
+	 * @return Boolean true when success, otherwise false
+	 * @throws UnauthorizedException
+	 *             when the user is not signed in.
+	 * @throws NotFoundException
+	 *             when there is no Conference with the given conferenceId.
+	 */
+	@ApiMethod(
+            name = "registerForConference",
+            path = "conference/{websafeConferenceKey}/registration",
+            httpMethod = HttpMethod.POST
+    )
 
-		// Get the userId
-		final String userId = user.getUserId();
+    public WrappedBoolean registerForConference_SKELETON(final User user,
+            @Named("websafeConferenceKey") final String websafeConferenceKey)
+            throws UnauthorizedException, NotFoundException,
+            ForbiddenException, ConflictException {
+        // If not signed in, throw a 401 error.
+        if (user == null) {
+            throw new UnauthorizedException("Authorization required");
+        }
 
-		// Start transaction
-		WrappedBoolean result = ofy().transact(new Work<WrappedBoolean>() {
-			public WrappedBoolean run() {
-				try {
+        // Get the userId
+        final String userId = user.getUserId();
 
-					// Get the conference key -- you can get it from
-					// websafeConferenceKey
-					// Will throw ForbiddenException if the key cannot be
-					// created
-					Key<Conference> conferenceKey = Key
-							.create(websafeConferenceKey);
+        // TODO
+        // Start transaction
+        WrappedBoolean result = ofy().transact(new Work<WrappedBoolean>() {
+        	public WrappedBoolean run(){
+                try {
 
-					// Get the Conference entity from the datastore
-					Conference conference = ofy().load().key(conferenceKey)
-							.now();
+                // TODO
+                // Get the conference key -- you can get it from websafeConferenceKey
+                // Will throw ForbiddenException if the key cannot be created
+                Key<Conference> conferenceKey = Key.create(websafeConferenceKey);
 
-					// 404 when there is no Conference with the given
-					// conferenceId.
-					if (conference == null) {
-						return new WrappedBoolean(false,
-								"No Conference found with key: "
-										+ websafeConferenceKey);
-					}
+                // TODO
+                // Get the Conference entity from the datastore
+                Conference conference = ofy().load().key(conferenceKey).now();
 
-					// Get the user's Profile entity
-					Profile profile = getProfileFromUser(user);
+                // 404 when there is no Conference with the given conferenceId.
+                if (conference == null) {
+                    return new WrappedBoolean (false,
+                            "No Conference found with key: "
+                                    + websafeConferenceKey);
+                }
 
-					// Has the user already registered to attend this
-					// conference?
-					if (profile.getConferenceKeysToAttend().contains(
-							websafeConferenceKey)) {
-						return new WrappedBoolean(false, "Already registered");
-					} else if (conference.getSeatsAvailable() <= 0) {
-						return new WrappedBoolean(false, "No seats available");
-					} else {
-						// All looks good, go ahead and book the seat
+                // TODO
+                // Get the user's Profile entity
+                Profile profile = getProfileFromUser(user);
 
-						// Add the websafeConferenceKey to the profile's
-						// conferencesToAttend property
-						profile.addToConferenceKeysToAttend(websafeConferenceKey);
+                // Has the user already registered to attend this conference?
+                if (profile.getConferenceKeysToAttend().contains(
+                        websafeConferenceKey)) {
+                    return new WrappedBoolean (false, "Already registered");
+                } else if (conference.getSeatsAvailable() <= 0) {
+                    return new WrappedBoolean (false, "No seats available");
+                } else {
+                    // All looks good, go ahead and book the seat
+                    
+                    // TODO
+                    // Add the websafeConferenceKey to the profile's
+                    // conferencesToAttend property
+                    profile.addToConferenceKeysToAttend(websafeConferenceKey);
+                    
+                    // TODO 
+                    // Decrease the conference's seatsAvailable
+                    // You can use the bookSeats() method on Conference
+                    conference.bookSeats(1);
+                    // TODO
+                    // Save the Conference and Profile entities
+                    ofy().save().entities(profile,conference).now();
+                    // We are booked!
+                    return new WrappedBoolean(true, "Registration successful");
+                }
 
-						// Decrease the conference's seatsAvailable
-						// You can use the bookSeats() method on Conference
-						conference.bookSeats(1);
-						// Save the Conference and Profile entities
-						ofy().save().entities(profile, conference).now();
-						// We are booked!
-						return new WrappedBoolean(true,
-								"Registration successful");
-					}
-
-				} catch (Exception e) {
-					return new WrappedBoolean(false, "Unknown exception");
-				}
-			}
-		});
-		// if result is false
-		if (!result.getResult()) {
-			if (result.getReason().contains("No Conference found with key")) {
-				throw new NotFoundException(result.getReason());
-			} else if (result.getReason() == "Already registered") {
-				throw new ConflictException("You have already registered");
-			} else if (result.getReason() == "No seats available") {
-				throw new ConflictException("There are no seats available");
-			} else {
-				throw new ForbiddenException("Unknown exception");
-			}
-		}
-		return result;
-	}
+                }
+                catch (Exception e) {
+                    return new WrappedBoolean(false, "Unknown exception");
+                }
+        	}
+        });
+        // if result is false
+        if (!result.getResult()) {
+            if (result.getReason().contains("No Conference found with key")) {
+                throw new NotFoundException (result.getReason());
+            }
+            else if (result.getReason() == "Already registered") {
+                throw new ConflictException("You have already registered");
+            }
+            else if (result.getReason() == "No seats available") {
+                throw new ConflictException("There are no seats available");
+            }
+            else {
+                throw new ForbiddenException("Unknown exception");
+            }
+        }
+        return result;
+    }
 
 	/**
 	 * Unregister from the specified Conference.
